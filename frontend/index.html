@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>LyricLens</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,500;1,600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<style>
+/* ═══════════════════════════════════════════════
+   RESET
+   ═══════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin:0; padding:0; }
+
+/* ═══════════════════════════════════════════════
+   PALETTE  —  Cream + Deep Navy + Warm Gold
+   ═══════════════════════════════════════════════ */
+:root {
+  /* Surfaces */
+  --bg:        #fef6e4;
+  --surface:   #f7edcf;
+  --raised:    #f0e4bc;
+  --card:      #fffdf7;
+  --white:     #ffffff;
+
+  /* Glass */
+  --glass:     rgba(254,246,228,0.94);
+  --glass2:    rgba(254,246,228,0.75);
+
+  /* Borders */
+  --border:    rgba(0,24,88,0.10);
+  --border-hi: rgba(0,24,88,0.30);
+  --border-md: rgba(0,24,88,0.18);
+
+  /* Navy text */
+  --navy:      #001858;
+  --navy2:     #172c66;
+  --muted:     #4a5e9e;
+  --dim:       #8e9bc8;
+  --dimmer:    #bdc5e0;
+
+  /* Alias for components */
+  --text:      #001858;
+  --text2:     #172c66;
+
+  /* Gold accent */
+  --gold:      #c8963c;
+  --gold-dk:   #a07828;
+  --gold-lt:   rgba(200,150,60,0.13);
+  --gold-glow: rgba(200,150,60,0.22);
+
+  /* Status */
+  --green:     #0d9488;
+  --red:       #be123c;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 4px rgba(0,24,88,0.08);
+  --shadow:    0 4px 20px rgba(0,24,88,0.10);
+  --shadow-lg: 0 12px 48px rgba(0,24,88,0.14);
+}
+
+html, body { height:100%; background:var(--bg); }
+body {
+  font-family:'Inter',system-ui,sans-serif;
+  color:var(--text); min-height:100vh;
+  overflow:hidden; -webkit-font-smoothing:antialiased;
+}
+::-webkit-scrollbar { width:4px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:rgba(0,24,88,0.14); border-radius:8px; }
+#root { height:100vh; display:flex; flex-direction:column; overflow:hidden; position:relative; }
+
+/* ═══════════════════════════════════════════════
+   CINEMATIC BG — album art as subtle watercolour
+   ═══════════════════════════════════════════════ */
+.bg-wrap {
+  position:fixed; inset:0; z-index:0; overflow:hidden; pointer-events:none;
+}
+.bg-art {
+  position:absolute; inset:-15%; width:130%; height:130%;
+  object-fit:cover;
+  filter:blur(100px) saturate(0.7) brightness(1.1);
+  opacity:0.18;
+  transition:opacity 1.8s ease;
+}
+.bg-static {
+  position:absolute; inset:0;
+  background:
+    radial-gradient(ellipse 65% 50% at 5% -10%, rgba(200,150,60,0.09) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 60% at 95% 110%, rgba(0,24,88,0.06) 0%, transparent 55%);
+}
+.bg-vignette {
+  position:absolute; inset:0;
+  background:
+    linear-gradient(180deg,
+      rgba(254,246,228,0.35) 0%,
+      rgba(254,246,228,0.00) 35%,
+      rgba(254,246,228,0.00) 65%,
+      rgba(254,246,228,0.45) 100%);
+}
+
+/* ═══════════════════════════════════════════════
+   HEADER
+   ═══════════════════════════════════════════════ */
+.hdr {
+  position:relative; z-index:20; flex-shrink:0;
+  height:56px; padding:0 1.5rem;
+  background:rgba(254,246,228,0.92);
+  backdrop-filter:blur(20px) saturate(1.3);
+  -webkit-backdrop-filter:blur(20px) saturate(1.3);
+  border-bottom:1px solid var(--border);
+  box-shadow:var(--shadow-sm);
+  display:flex; align-items:center; justify-content:space-between;
+}
+.hdr-l { display:flex; align-items:center; gap:11px; }
+.hdr-logo {
+  width:36px; height:36px; border-radius:10px; flex-shrink:0;
+  background:linear-gradient(135deg,var(--navy),var(--navy2));
+  display:flex; align-items:center; justify-content:center; font-size:1rem;
+  box-shadow:0 2px 12px rgba(0,24,88,0.22);
+}
+.hdr-title {
+  font-family:'Playfair Display',serif; font-size:1.18rem; font-weight:700;
+  color:var(--navy); letter-spacing:-0.2px;
+}
+.hdr-sub { font-size:0.61rem; color:var(--muted); margin-top:1px; letter-spacing:0.5px; }
+.hdr-r   { display:flex; align-items:center; gap:7px; }
+.chip {
+  border-radius:20px; padding:3px 11px; font-size:0.62rem; font-weight:700;
+  letter-spacing:0.6px; text-transform:uppercase;
+  background:var(--navy); color:var(--bg);
+}
+.route-chip {
+  border-radius:20px; padding:3px 11px; font-size:0.62rem; font-weight:600;
+  background:rgba(0,24,88,0.06); border:1px solid var(--border); color:var(--muted);
+  transition:all 0.3s;
+}
+.route-chip.live {
+  background:var(--gold-lt); border-color:rgba(200,150,60,0.3); color:var(--gold-dk);
+}
+
+/* ═══════════════════════════════════════════════
+   LAYOUT
+   ═══════════════════════════════════════════════ */
+.grid {
+  flex:1; display:grid; grid-template-columns:290px 1fr;
+  position:relative; z-index:10; overflow:hidden; min-height:0;
+}
+
+/* ═══════════════════════════════════════════════
+   SIDEBAR
+   ═══════════════════════════════════════════════ */
+.sidebar {
+  background:rgba(247,237,207,0.96);
+  backdrop-filter:blur(24px) saturate(1.2);
+  -webkit-backdrop-filter:blur(24px) saturate(1.2);
+  border-right:1px solid var(--border);
+  display:flex; flex-direction:column; overflow:hidden;
+}
+.sb-scroll {
+  flex:1; overflow-y:auto; padding:1rem; display:flex; flex-direction:column;
+}
+.lbl {
+  font-size:0.56rem; font-weight:800; letter-spacing:1.6px; text-transform:uppercase;
+  color:var(--muted); display:block; margin:14px 0 6px;
+}
+.lbl:first-child { margin-top:0; }
+
+/* ── Input fields ── */
+input[type="text"], textarea {
+  width:100%;
+  background:var(--white);
+  border:1px solid var(--border-md);
+  border-radius:8px; color:var(--navy); font-size:0.84rem; padding:8px 11px;
+  outline:none; font-family:inherit;
+  transition:border-color 0.18s, box-shadow 0.18s;
+}
+input[type="text"]::placeholder, textarea::placeholder { color:var(--dimmer); }
+input[type="text"]:focus, textarea:focus {
+  border-color:var(--navy2);
+  box-shadow:0 0 0 3px rgba(0,24,88,0.08);
+}
+.inp-gap { margin-top:5px; }
+
+/* ── Mode tabs ── */
+.mode-tabs {
+  display:grid; grid-template-columns:repeat(3,1fr);
+  gap:3px; background:rgba(0,24,88,0.06);
+  border:1px solid var(--border); border-radius:10px; padding:3px;
+}
+.mode-tab {
+  padding:7px 4px; border-radius:7px; border:none; background:transparent;
+  color:var(--dim); font-size:0.71rem; font-weight:600; cursor:pointer;
+  transition:all 0.15s; font-family:inherit; text-align:center; line-height:1.3;
+}
+.mode-tab.on {
+  background:var(--navy); color:var(--bg);
+  box-shadow:0 2px 10px rgba(0,24,88,0.18);
+}
+.mode-tab.on.vibe {
+  background:linear-gradient(135deg,var(--navy),var(--navy2));
+  color:var(--bg); border:none;
+  box-shadow:0 2px 14px rgba(0,24,88,0.2);
+}
+.mode-tab:not(.on):hover { color:var(--navy2); background:rgba(0,24,88,0.06); }
+.mode-hint { font-size:0.63rem; color:var(--muted); margin-top:5px; font-style:italic; min-height:24px; line-height:1.4; }
+
+/* ── Buttons ── */
+.row { display:flex; gap:5px; }
+.btn {
+  flex:1; padding:8px 10px; border-radius:8px;
+  border:1.5px solid var(--border-md);
+  background:var(--white); color:var(--navy2);
+  font-size:0.79rem; font-weight:600; cursor:pointer;
+  transition:all 0.15s; font-family:inherit;
+}
+.btn:hover { background:var(--surface); border-color:var(--border-hi); transform:translateY(-1px); box-shadow:var(--shadow-sm); }
+.btn.primary {
+  background:var(--navy);
+  border-color:transparent; color:var(--bg);
+  box-shadow:0 3px 14px rgba(0,24,88,0.2);
+}
+.btn.primary:hover { background:var(--navy2); transform:translateY(-1px); box-shadow:0 5px 20px rgba(0,24,88,0.28); }
+.btn:disabled { opacity:0.38; cursor:not-allowed; transform:none !important; box-shadow:none !important; }
+.btn.sq { flex:0 0 34px; padding:7px; font-size:0.88rem; }
+
+/* ── Status dot ── */
+.status {
+  display:flex; align-items:center; gap:7px;
+  margin-top:9px; font-size:0.7rem; color:var(--muted);
+}
+.dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+.dot.on  { background:var(--green); box-shadow:0 0 8px rgba(13,148,136,0.5); animation:pdot 2s infinite; }
+.dot.off { background:var(--dimmer); }
+@keyframes pdot { 0%,100%{box-shadow:0 0 5px rgba(13,148,136,0.4);} 50%{box-shadow:0 0 12px rgba(13,148,136,0.75);} }
+
+.sep { border:none; border-top:1px solid var(--border); margin:11px 0; }
+
+/* ═══════════════════════════════════════════════
+   NOW PLAYING — prominent album cover
+   ═══════════════════════════════════════════════ */
+.np-section { display:flex; flex-direction:column; gap:0; }
+
+.np-cover-wrap {
+  position:relative; width:100%; margin-bottom:0;
+}
+.np-cover {
+  width:100%; aspect-ratio:1; object-fit:cover;
+  border-radius:14px;
+  box-shadow:
+    0 20px 50px rgba(0,24,88,0.18),
+    0 6px 20px rgba(0,24,88,0.12),
+    0 0 0 1px rgba(0,24,88,0.08);
+  display:block;
+  transition:transform 0.4s ease, box-shadow 0.4s ease;
+}
+.np-cover:hover {
+  transform:scale(1.013);
+  box-shadow:
+    0 24px 60px rgba(0,24,88,0.22),
+    0 8px 28px rgba(0,24,88,0.14),
+    0 0 0 1px rgba(0,24,88,0.12);
+}
+.np-cover-placeholder {
+  width:100%; aspect-ratio:1; border-radius:14px;
+  background:linear-gradient(135deg, var(--surface) 0%, var(--raised) 100%);
+  display:flex; align-items:center; justify-content:center;
+  font-size:3.5rem; border:1px solid var(--border);
+  box-shadow:0 8px 30px rgba(0,24,88,0.10);
+}
+.np-avatar-wrap {
+  position:absolute; bottom:-10px; right:10px;
+  width:46px; height:46px; border-radius:50%;
+  border:2.5px solid var(--bg);
+  box-shadow:0 4px 14px rgba(0,24,88,0.16), 0 0 0 1px var(--border);
+  overflow:hidden; background:var(--raised);
+}
+.np-avatar { width:100%; height:100%; object-fit:cover; display:block; }
+
+.np-info { margin-top:18px; padding:0 2px; }
+.np-track {
+  font-family:'Playfair Display',serif;
+  font-size:1.05rem; font-weight:700;
+  color:var(--navy); letter-spacing:-0.3px; line-height:1.25;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.np-artist {
+  font-size:0.76rem; color:var(--muted); margin-top:5px;
+  font-weight:500; display:flex; align-items:center; gap:5px;
+}
+.np-meta { margin-top:6px; font-size:0.66rem; color:var(--dim); line-height:1.8; }
+
+/* Waveform bars */
+.np-wave {
+  display:flex; align-items:flex-end; gap:2px;
+  height:20px; margin:10px 2px 2px;
+}
+.np-bar {
+  width:3px; border-radius:2px;
+  background:var(--navy2); opacity:0.25;
+  animation:wave var(--d) ease-in-out infinite alternate;
+}
+@keyframes wave { from{transform:scaleY(0.2);} to{transform:scaleY(1);} }
+
+.np-actions { display:flex; gap:5px; margin-top:2px; }
+
+/* ── Example queries ── */
+.eqs { display:flex; flex-direction:column; gap:3px; }
+.eq {
+  padding:6px 10px; background:transparent;
+  border:1px solid var(--border); border-radius:7px;
+  font-size:0.71rem; color:var(--dim); cursor:pointer;
+  transition:all 0.15s; display:block;
+}
+.eq:hover {
+  background:rgba(0,24,88,0.05); border-color:var(--border-md);
+  color:var(--navy2); padding-left:14px;
+}
+
+.sb-foot {
+  padding:8px 1rem 10px; border-top:1px solid var(--border);
+  font-size:0.6rem; color:var(--dimmer); display:flex; align-items:center; gap:5px;
+}
+
+/* ═══════════════════════════════════════════════
+   CHAT PANEL
+   ═══════════════════════════════════════════════ */
+.chat-panel { display:flex; flex-direction:column; background:transparent; overflow:hidden; }
+.chat-scroll {
+  flex:1; overflow-y:auto; padding:1.2rem 1.5rem;
+  display:flex; flex-direction:column; gap:2px; min-height:0;
+}
+
+/* ── Empty state ── */
+.empty {
+  flex:1; display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  gap:1rem; padding:3rem; text-align:center; margin:auto;
+}
+.empty-icon { font-size:3.6rem; filter:drop-shadow(0 4px 14px rgba(200,150,60,0.3)); }
+.empty-h {
+  font-family:'Playfair Display',serif; font-size:1.75rem; font-weight:700;
+  color:var(--navy); line-height:1.2;
+}
+.empty-p { font-size:0.82rem; color:var(--muted); max-width:280px; line-height:1.68; }
+.empty-tag {
+  font-size:0.73rem; color:var(--navy2);
+  background:var(--gold-lt); border:1px solid rgba(200,150,60,0.28);
+  border-radius:8px; padding:8px 18px;
+  box-shadow:0 2px 12px rgba(200,150,60,0.1);
+}
+
+/* ═══════════════════════════════════════════════
+   BUBBLES
+   ═══════════════════════════════════════════════ */
+.mwrap { display:flex; flex-direction:column; margin:8px 0; }
+.mwrap.user { align-items:flex-end; }
+.mwrap.ai   { align-items:flex-start; }
+.mlbl {
+  font-size:0.57rem; font-weight:800; letter-spacing:1.2px;
+  text-transform:uppercase; opacity:0.5; margin-bottom:5px;
+}
+
+/* User bubble — navy background */
+.bubble {
+  font-size:0.875rem; line-height:1.72; border-radius:16px; padding:12px 16px;
+}
+.bubble.user {
+  max-width:76%;
+  background:var(--navy);
+  color:var(--bg); border-radius:16px 16px 4px 16px;
+  box-shadow:0 4px 20px rgba(0,24,88,0.2);
+}
+
+/* AI bubble — clean white card */
+.bubble.ai {
+  max-width:97%;
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:4px 16px 16px 16px;
+  color:var(--text2);
+  box-shadow:var(--shadow);
+}
+.bubble.ai.vibe {
+  background:var(--card);
+  border-color:rgba(200,150,60,0.22);
+  box-shadow:0 4px 28px rgba(200,150,60,0.10), 0 0 0 1px rgba(200,150,60,0.12);
+}
+
+/* AI internals */
+.bubble.ai .sh {
+  display:block; font-size:0.79rem; font-weight:700; color:var(--gold-dk);
+  margin:16px 0 7px; padding-bottom:6px;
+  border-bottom:1px solid rgba(200,150,60,0.18);
+}
+.bubble.ai .sh:first-child { margin-top:0; }
+.bubble.ai ul { margin:5px 0 10px; padding-left:0; list-style:none; }
+.bubble.ai li {
+  color:var(--navy2); margin:5px 0; font-size:0.855rem;
+  padding-left:14px; position:relative;
+}
+.bubble.ai li::before { content:'·'; position:absolute; left:3px; color:var(--gold); font-size:1.3rem; line-height:1; top:0px; }
+.bubble.ai p   { margin:3px 0 9px; color:var(--navy2); line-height:1.76; }
+.bubble.ai strong { color:var(--navy); font-weight:700; }
+.bubble.ai .cite { color:var(--gold-dk); font-size:0.8em; font-weight:500; }
+.bubble.ai .sftr {
+  margin-top:13px; padding-top:9px;
+  border-top:1px solid var(--border);
+  font-size:0.71rem; color:var(--dim);
+}
+
+/* ── Emotion pills ── */
+.epills { display:flex; flex-wrap:wrap; gap:7px; margin:7px 0 12px; }
+.ep {
+  border-radius:20px; padding:5px 14px; font-size:0.75rem; font-weight:500;
+  border:1px solid; cursor:default; transition:transform 0.15s, box-shadow 0.15s;
+}
+.ep:hover { transform:translateY(-2px); }
+.ep:nth-child(6n+1){background:rgba(200,150,60,.12);color:#7a5a10;border-color:rgba(200,150,60,.3);box-shadow:0 2px 10px rgba(200,150,60,.1);}
+.ep:nth-child(6n+2){background:rgba(0,24,88,.07);color:#001858;border-color:rgba(0,24,88,.2);box-shadow:0 2px 10px rgba(0,24,88,.07);}
+.ep:nth-child(6n+3){background:rgba(190,18,60,.07);color:#9b1235;border-color:rgba(190,18,60,.2);box-shadow:0 2px 10px rgba(190,18,60,.07);}
+.ep:nth-child(6n+4){background:rgba(13,148,136,.08);color:#0d6b60;border-color:rgba(13,148,136,.2);box-shadow:0 2px 10px rgba(13,148,136,.07);}
+.ep:nth-child(6n+5){background:rgba(23,44,102,.06);color:#172c66;border-color:rgba(23,44,102,.18);box-shadow:0 2px 10px rgba(23,44,102,.06);}
+.ep:nth-child(6n+6){background:rgba(160,90,20,.08);color:#8b4e10;border-color:rgba(160,90,20,.2);box-shadow:0 2px 10px rgba(160,90,20,.06);}
+
+/* ── Sources ── */
+.srcs-wrap { margin:4px 0 5px; max-width:97%; }
+.srcs-btn {
+  background:transparent; border:1px solid var(--border); border-radius:7px; padding:4px 11px;
+  font-size:0.69rem; color:var(--dim); cursor:pointer; font-family:inherit; width:100%;
+  text-align:left; transition:all 0.15s;
+}
+.srcs-btn:hover { background:rgba(0,24,88,0.04); color:var(--muted); border-color:var(--border-md); }
+.srcs-body { padding:6px 8px 2px; display:flex; flex-wrap:wrap; gap:4px; }
+.src-chip {
+  background:rgba(0,24,88,.07); color:var(--navy2);
+  border:1px solid rgba(0,24,88,.14);
+  border-radius:20px; padding:2px 10px; font-size:0.67rem; font-weight:500;
+}
+
+/* ── Related songs ── */
+.rel-hdr {
+  font-size:0.58rem; font-weight:800; letter-spacing:1.2px; text-transform:uppercase;
+  color:var(--gold-dk); margin:12px 0 8px;
+  display:flex; align-items:center; gap:8px;
+}
+.rel-hdr::after { content:''; flex:1; height:1px; background:linear-gradient(90deg,rgba(200,150,60,.3),transparent); }
+.rel-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; max-width:97%; }
+.rc {
+  background:var(--white); border:1px solid var(--border);
+  border-radius:11px; padding:10px 11px; transition:all 0.18s;
+  box-shadow:var(--shadow-sm);
+}
+.rc:hover { border-color:var(--border-hi); background:var(--surface); transform:translateY(-2px); box-shadow:var(--shadow); }
+.rc-title  { font-size:0.79rem; font-weight:700; color:var(--navy); }
+.rc-artist { font-size:0.7rem; color:var(--muted); margin-top:2px; }
+.rc-reason { font-size:0.67rem; color:var(--dim); margin-top:5px; line-height:1.45; font-style:italic; }
+
+/* ── Typing indicator ── */
+.typing {
+  display:flex; align-items:center; gap:9px; padding:7px 0;
+  font-size:0.78rem; color:var(--muted); font-style:italic;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+.spin { animation:spin 0.8s linear infinite; display:inline-block; font-style:normal; }
+
+/* ═══════════════════════════════════════════════
+   INPUT BAR
+   ═══════════════════════════════════════════════ */
+.input-bar {
+  position:relative; z-index:10;
+  background:rgba(254,246,228,0.95);
+  backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
+  border-top:1px solid var(--border);
+  box-shadow:0 -2px 16px rgba(0,24,88,0.05);
+  padding:10px 1.5rem 12px;
+  display:flex; gap:7px; align-items:flex-end; flex-shrink:0;
+}
+.input-bar textarea {
+  flex:1; resize:none; min-height:40px; max-height:110px;
+  padding:9px 13px; border-radius:12px; font-size:0.86rem; line-height:1.45;
+  background:var(--white); border:1.5px solid var(--border-md); color:var(--navy);
+}
+.input-bar textarea:focus {
+  border-color:var(--navy2);
+  box-shadow:0 0 0 3px rgba(0,24,88,0.08);
+}
+.input-bar textarea::placeholder { color:var(--dimmer); }
+.send {
+  width:40px; height:40px; border-radius:11px; border:none;
+  background:var(--navy);
+  color:var(--bg); font-size:.9rem; cursor:pointer; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  transition:filter .15s, transform .15s, box-shadow .15s;
+  box-shadow:0 3px 12px rgba(0,24,88,0.2);
+}
+.send:hover:not(:disabled) { background:var(--navy2); transform:translateY(-1px); box-shadow:0 6px 20px rgba(0,24,88,0.28); }
+.send:disabled { opacity:.32; cursor:not-allowed; }
+
+/* ── Toast ── */
+.toast {
+  position:fixed; bottom:1.2rem; right:1.2rem; z-index:9999;
+  background:rgba(254,246,228,0.97);
+  backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+  border:1px solid var(--border-md); border-radius:10px;
+  padding:10px 16px; font-size:0.82rem; font-weight:500; color:var(--navy);
+  box-shadow:var(--shadow-lg);
+  animation:tin .2s ease;
+}
+.toast.err { border-color:rgba(190,18,60,.3); color:var(--red); }
+@keyframes tin{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+/* Relative base — works on any port locally and in production */
+const API = "";
+
+/* iTunes URLs are direct public links — load them natively.
+   Other sources (Genius) go through the server proxy. */
+const img = url => {
+  if (!url) return null;
+  if (url.includes("mzstatic.com") || url.includes("itunes.apple.com")) return url;
+  return `/api/image?url=${encodeURIComponent(url)}`;
+};
+
+const isVibe = t => t.includes("🌌 Emotional Atmosphere") && t.includes("🎨 Dominant Emotions");
+
+/* ── Inline markdown renderer ── */
+function Il({ t }) {
+  const parts=[]; const rx=/(\*\*(.+?)\*\*|\[([^\]]+)\])/g;
+  let last=0,m,k=0;
+  while((m=rx.exec(t))!==null){
+    if(m.index>last) parts.push(t.slice(last,m.index));
+    if(m[0].startsWith("**")) parts.push(<strong key={k++}>{m[2]}</strong>);
+    else parts.push(<span key={k++} className="cite">[{m[3]}]</span>);
+    last=m.index+m[0].length;
+  }
+  if(last<t.length) parts.push(t.slice(last));
+  return <>{parts}</>;
+}
+
+/* ── Full markdown → React ── */
+function Md({ text, vibe }) {
+  const lines=text.split("\n"); const els=[];
+  let lis=[],pills=[],inPills=false,k=0;
+  const fl=()=>{if(lis.length){els.push(<ul key={k++}>{lis}</ul>);lis=[];}};
+  const fp=()=>{
+    if(pills.length){
+      els.push(<div key={k++} className="epills">{pills.map((p,i)=><span key={i} className="ep">{p}</span>)}</div>);
+      pills=[];
+    }
+    inPills=false;
+  };
+  for(const line of lines){
+    const s=line.trim();
+    if(s.startsWith("## ")){
+      fl();fp();
+      inPills=vibe&&s.includes("🎨 Dominant Emotions");
+      els.push(<div key={k++} className="sh"><Il t={s.slice(3)}/></div>);
+    } else if((s.startsWith("- ")||s.startsWith("* "))&&inPills){
+      pills.push(s.slice(2).trim());
+    } else if(s.startsWith("- ")||s.startsWith("* ")){
+      fp(); lis.push(<li key={k++}><Il t={s.slice(2)}/></li>);
+    } else if(s.toLowerCase().startsWith("sources:")){
+      fl();fp();
+      els.push(<div key={k++} className="sftr">📎 <Il t={s.slice(8).trim()}/></div>);
+    } else if(s===""){fl();fp();}
+    else{fl();fp();els.push(<p key={k++}><Il t={s}/></p>);}
+  }
+  fl();fp();
+  return <>{els}</>;
+}
+
+function Sources({list}){
+  const[o,setO]=useState(false);
+  if(!list?.length) return null;
+  return(
+    <div className="srcs-wrap">
+      <button className="srcs-btn" onClick={()=>setO(x=>!x)}>{o?"▾":"▸"} Sources ({list.length})</button>
+      {o&&<div className="srcs-body">{list.map((s,i)=><span key={i} className="src-chip">📄 {s}</span>)}</div>}
+    </div>
+  );
+}
+
+function Related({songs}){
+  if(!songs?.length) return null;
+  return(
+    <>
+      <div className="rel-hdr">🎵 You might also feel</div>
+      <div className="rel-grid">
+        {songs.map((s,i)=>(
+          <div key={i} className="rc">
+            <div className="rc-title">{s.title}</div>
+            <div className="rc-artist">{s.artist}</div>
+            <div className="rc-reason">{s.reason}</div>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
+function Msg({m}){
+  if(m.role==="user") return(
+    <div className="mwrap user">
+      <div className="mlbl" style={{color:"var(--muted)"}}>You</div>
+      <div className="bubble user">{m.content}</div>
+    </div>
+  );
+  const v=isVibe(m.content);
+  return(
+    <div className="mwrap ai">
+      <div className="mlbl" style={{color:"var(--dim)"}}>LyricLens</div>
+      <div className={`bubble ai${v?" vibe":""}`}><Md text={m.content} vibe={v}/></div>
+      <Sources list={m.sources}/>
+      <Related songs={m.related_songs}/>
+    </div>
+  );
+}
+
+/* ── Waveform decoration ── */
+function Wave(){
+  const heights=[35,55,80,45,70,90,60,40,75,55,85,65,50,78,42,68];
+  const delays =[0,.1,.2,.3,.15,.25,.05,.35,.1,.3,.2,.4,.05,.25,.15,.35];
+  return(
+    <div className="np-wave">
+      {heights.map((h,i)=>(
+        <div key={i} className="np-bar"
+          style={{height:`${h}%`, '--d':`${0.55+delays[i]}s`}}/>
+      ))}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════
+   NOW PLAYING SIDEBAR
+   ═══════════════════════════════════════════════ */
+function NowPlaying({meta,mode,setMode,onClear,onReset,onFill,MODES}){
+  const cover  = img(meta?.cover_art    || null);
+  const avatar = img(meta?.artist_image || null);
+  return(
+    <div className="np-section">
+
+      {/* Album cover */}
+      <div className="np-cover-wrap">
+        {cover
+          ? <img className="np-cover" src={cover} alt="album cover"
+              onError={e=>{e.target.style.display="none";e.target.nextSibling&&(e.target.nextSibling.style.display="flex");}}/>
+          : null
+        }
+        <div className="np-cover-placeholder" style={{display: cover ? "none" : "flex"}}>🎵</div>
+        {avatar&&(
+          <div className="np-avatar-wrap">
+            <img className="np-avatar" src={avatar} alt="artist"
+              onError={e=>e.target.parentElement.style.display="none"}/>
+          </div>
+        )}
+      </div>
+
+      {/* Track info */}
+      <div className="np-info">
+        <div className="np-track">{meta?.title||"—"}</div>
+        <div className="np-artist">
+          <span>🎤</span>
+          {meta?.artist||"—"}
+        </div>
+        {(meta?.album||meta?.release_date)&&(
+          <div className="np-meta">
+            {meta.album&&<span>💿 {meta.album}&nbsp;&nbsp;</span>}
+            {meta.release_date&&<span>📅 {meta.release_date}</span>}
+          </div>
+        )}
+        <Wave/>
+      </div>
+
+      <hr className="sep"/>
+
+      {/* Mode selector */}
+      <span className="lbl">Analysis Mode</span>
+      <div className="mode-tabs">
+        {Object.entries(MODES).map(([m,{icon,label}])=>(
+          <button key={m}
+            className={`mode-tab${mode===m?(m==="vibe"?" on vibe":" on"):""}`}
+            onClick={()=>setMode(m)}>
+            {icon}<br/>{label}
+          </button>
+        ))}
+      </div>
+
+      <div className="row" style={{marginTop:10}}>
+        <button className="btn" onClick={onClear}>🗑 Clear chat</button>
+        <button className="btn sq" onClick={onReset} title="Load a new song">↺</button>
+      </div>
+
+      <hr className="sep"/>
+
+      <span className="lbl">Try asking</span>
+      <div className="eqs">
+        {[
+          "What does this song feel like at 2am?",
+          "What emotions live inside this music?",
+          "What kind of person does this find?",
+          "What's the emotional arc?",
+          "Why does this hit differently at night?",
+        ].map((ex,i)=><span key={i} className="eq" onClick={()=>onFill(ex)}>{ex}</span>)}
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════
+   SEARCH SIDEBAR — before song loaded
+   ═══════════════════════════════════════════════ */
+function SearchPanel({song,setSong,artist,setArtist,mode,setMode,onLoad,ingesting,MODES}){
+  return(
+    <>
+      <span className="lbl">Song</span>
+      <input type="text" placeholder='Title — e.g. "Ivy"'
+        value={song} onChange={e=>setSong(e.target.value)}
+        onKeyDown={e=>e.key==="Enter"&&onLoad()}/>
+      <input type="text" className="inp-gap" placeholder='Artist — e.g. "Frank Ocean"'
+        value={artist} onChange={e=>setArtist(e.target.value)}
+        onKeyDown={e=>e.key==="Enter"&&onLoad()}/>
+
+      <span className="lbl">Analysis Mode</span>
+      <div className="mode-tabs">
+        {Object.entries(MODES).map(([m,{icon,label}])=>(
+          <button key={m}
+            className={`mode-tab${mode===m?(m==="vibe"?" on vibe":" on"):""}`}
+            onClick={()=>setMode(m)}>
+            {icon}<br/>{label}
+          </button>
+        ))}
+      </div>
+      <p className="mode-hint">{MODES[mode].desc}</p>
+
+      <span className="lbl">Load</span>
+      <button className="btn primary" onClick={onLoad} disabled={ingesting}>
+        {ingesting?<span className="spin">⏳</span>:"🚀"}&nbsp;{ingesting?"Loading…":"Analyse Song"}
+      </button>
+      <div className="status">
+        <div className="dot off"/>
+        <span>No song loaded</span>
+      </div>
+
+      <hr className="sep"/>
+
+      <span className="lbl">How it works</span>
+      <div className="eqs">
+        {[
+          "⚡ Quick — 3-section emotional read",
+          "🔬 Deep — full music journalism",
+          "🎭 Vibe — pure emotional DNA",
+        ].map((ex,i)=><span key={i} className="eq" style={{cursor:"default"}}>{ex}</span>)}
+      </div>
+    </>
+  );
+}
+
+/* ═══════════════════════════════════════════════
+   CINEMATIC BACKGROUND
+   ═══════════════════════════════════════════════ */
+function CinemaBg({artUrl}){
+  return(
+    <div className="bg-wrap">
+      {artUrl
+        ? <><img className="bg-art" src={artUrl} alt=""/><div className="bg-vignette"/></>
+        : <><div className="bg-static"/><div className="bg-vignette"/></>
+      }
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════
+   CONFIG
+   ═══════════════════════════════════════════════ */
+const MODES={
+  quick:{icon:"⚡",label:"Quick", desc:"Punchy 3-section emotional read. Best for a fast feel."},
+  deep: {icon:"🔬",label:"Deep",  desc:"5-section deep dive — music journalism quality."},
+  vibe: {icon:"🎭",label:"Vibe",  desc:"Pure emotional DNA — no facts, just feeling."},
+};
+const RICONS={emotional:"🎭",factual:"📖",atmospheric:"🌌",thematic:"🧠",biographical:"🎤",recommendation:"🎵"};
+
+/* ── Toast ── */
+function Toast({msg,type,onDone}){
+  useEffect(()=>{if(msg){const t=setTimeout(onDone,3200);return()=>clearTimeout(t);}},[msg]);
+  if(!msg) return null;
+  return <div className={`toast${type==="err"?" err":""}`}>{msg}</div>;
+}
+
+/* ═══════════════════════════════════════════════
+   APP
+   ═══════════════════════════════════════════════ */
+function App(){
+  const[song,     setSong]     =useState("");
+  const[artist,   setArtist]   =useState("");
+  const[mode,     setMode]     =useState("quick");
+  const[loaded,   setLoaded]   =useState(false);
+  const[meta,     setMeta]     =useState(null);
+  const[msgs,     setMsgs]     =useState([]);
+  const[input,    setInput]    =useState("");
+  const[busy,     setBusy]     =useState(false);
+  const[busyMsg,  setBusyMsg]  =useState("");
+  const[ingesting,setIngesting]=useState(false);
+  const[toast,    setToast]    =useState(null);
+  const[toastT,   setToastT]   =useState("ok");
+  const[route,    setRoute]    =useState(null);
+  const endRef=useRef(null); const taRef=useRef(null);
+
+  const notify=(msg,type="ok")=>{setToast(msg);setToastT(type);};
+
+  useEffect(()=>{endRef.current?.scrollIntoView({behavior:"smooth"});},[msgs,busy]);
+
+  /* Check if a song is already loaded from a previous session */
+  useEffect(()=>{
+    fetch(`${API}/api/status`).then(r=>r.json())
+      .then(d=>{if(d.loaded){setLoaded(true);setMeta(d.song_meta||null);}})
+      .catch(()=>{});
+  },[]);
+
+  const load=async()=>{
+    if(!song.trim()||!artist.trim()){notify("Enter song title and artist.","err");return;}
+    setIngesting(true);
+    try{
+      const r=await fetch(`${API}/api/ingest`,{
+        method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({song_title:song.trim(),artist_name:artist.trim()}),
+      });
+      const d=await r.json();
+      if(!r.ok) throw new Error(d.detail||"Failed to load song");
+      setLoaded(true);setMeta(d.song_meta||null);setMsgs([]);setRoute(null);
+      notify(`✅ Loaded — ${d.chunks_count} knowledge chunks ready`);
+    }catch(e){notify(e.message,"err");}
+    finally{setIngesting(false);}
+  };
+
+  const clearChat=async()=>{
+    await fetch(`${API}/api/clear`,{method:"POST"}).catch(()=>{});
+    setMsgs([]);setRoute(null);notify("Conversation cleared.");
+  };
+
+  const resetAll=async()=>{
+    await fetch(`${API}/api/reset`,{method:"POST"}).catch(()=>{});
+    setMsgs([]);setLoaded(false);setMeta(null);
+    setSong("");setArtist("");setRoute(null);notify("Ready for a new song.");
+  };
+
+  const send=async()=>{
+    const q=input.trim();
+    if(!q||busy||!loaded) return;
+    setInput("");
+    setMsgs(p=>[...p,{role:"user",content:q}]);
+    setBusy(true);
+    try{
+      setBusyMsg("Routing query…");
+      await new Promise(r=>setTimeout(r,260));
+      setBusyMsg(mode==="vibe"?"Reading emotional DNA…":"Composing analysis…");
+      const r=await fetch(`${API}/api/query`,{
+        method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({query:q,mode}),
+      });
+      const d=await r.json();
+      if(!r.ok) throw new Error(d.detail||"Query failed");
+      if(d.route) setRoute(d.route);
+      setMsgs(p=>[...p,{
+        role:"assistant",content:d.answer,
+        sources:d.sources||[],related_songs:d.related_songs||[],
+      }]);
+    }catch(e){
+      notify(e.message,"err");
+      setMsgs(p=>[...p,{role:"assistant",content:"⚠️ Something went wrong. Please try again.",sources:[],related_songs:[]}]);
+    }finally{setBusy(false);setBusyMsg("");}
+  };
+
+  const onKey=e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send();}};
+  const fill =ex=>{setInput(ex);taRef.current?.focus();};
+
+  const artUrl=img(meta?.cover_art||meta?.artist_image||null);
+
+  return(
+    <>
+      <CinemaBg artUrl={artUrl}/>
+
+      {/* ── HEADER ─────────────────────────── */}
+      <header className="hdr">
+        <div className="hdr-l">
+          <div className="hdr-logo">🎵</div>
+          <div>
+            <div className="hdr-title">LyricLens</div>
+            <div className="hdr-sub">emotional music intelligence</div>
+          </div>
+        </div>
+        <div className="hdr-r">
+          {route&&(
+            <span className="route-chip live">
+              {RICONS[route]||"🔍"} {route}
+            </span>
+          )}
+          <span className="chip">AI</span>
+        </div>
+      </header>
+
+      <div className="grid">
+
+        {/* ── SIDEBAR ────────────────────────── */}
+        <aside className="sidebar">
+          <div className="sb-scroll">
+            {loaded
+              ? <NowPlaying
+                  meta={meta} mode={mode} setMode={setMode}
+                  onClear={clearChat} onReset={resetAll}
+                  onFill={fill} MODES={MODES}/>
+              : <SearchPanel
+                  song={song} setSong={setSong}
+                  artist={artist} setArtist={setArtist}
+                  mode={mode} setMode={setMode}
+                  onLoad={load} ingesting={ingesting} MODES={MODES}/>
+            }
+          </div>
+          <div className="sb-foot">
+            ⚡ Groq · ChromaDB · Genius · Wikipedia
+          </div>
+        </aside>
+
+        {/* ── CHAT ───────────────────────────── */}
+        <section className="chat-panel">
+          <div className="chat-scroll">
+            {msgs.length===0&&!busy?(
+              <div className="empty">
+                <div className="empty-icon">🎧</div>
+                <div className="empty-h">What does<br/>music feel like?</div>
+                <div className="empty-p">
+                  Load a song, then ask anything — its emotional atmosphere,
+                  lyrical depth, what kind of 2am it belongs to.
+                </div>
+                <div className="empty-tag">
+                  💡 Try <strong>Vibe mode</strong> first — it reads the emotional DNA
+                </div>
+              </div>
+            ):(
+              <>
+                {msgs.map((m,i)=><Msg key={i} m={m}/>)}
+                {busy&&(
+                  <div className="typing">
+                    <span className="spin">🔄</span>
+                    {busyMsg}
+                  </div>
+                )}
+              </>
+            )}
+            <div ref={endRef}/>
+          </div>
+
+          <div className="input-bar">
+            <textarea ref={taRef} rows={1}
+              placeholder={
+                !loaded?"Load a song first…"
+                :mode==="vibe"?"Ask how this song makes you feel…"
+                :"Ask about lyrics, themes, atmosphere, meaning…"
+              }
+              value={input} disabled={!loaded||busy}
+              onChange={e=>setInput(e.target.value)} onKeyDown={onKey}
+            />
+            <button className="send" onClick={send}
+              disabled={!loaded||busy||!input.trim()}>➤</button>
+          </div>
+        </section>
+
+      </div>
+
+      <Toast msg={toast} type={toastT} onDone={()=>setToast(null)}/>
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>

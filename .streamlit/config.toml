@@ -1,0 +1,12 @@
+[server]
+# Stops Streamlit from scanning every Python package in your environment.
+# Eliminates the "No module named torchvision" warnings.
+fileWatcherType = "none"
+
+[theme]
+base = "dark"
+primaryColor    = "#7C3AED"
+backgroundColor = "#080415"
+secondaryBackgroundColor = "#130a28"
+textColor       = "#e2d9f3"
+font = "sans serif"

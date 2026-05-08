@@ -1,0 +1,25 @@
+# LyricLens — Python Dependencies
+# Install with: pip install -r requirements.txt
+
+# ── Backend API ───────────────────────────
+fastapi             # FastAPI web framework
+uvicorn             # ASGI server to run FastAPI
+python-multipart    # Required for FastAPI form parsing
+
+# ── AI / ML ───────────────────────────────
+groq                # Groq API client (Llama3-70B inference)
+sentence-transformers # Embedding model (all-MiniLM-L6-v2)
+rank-bm25           # BM25 keyword search
+
+# ── Data sources ──────────────────────────
+lyricsgenius        # Genius API wrapper for fetching lyrics
+wikipedia-api       # Wikipedia article fetching
+
+# ── Storage ───────────────────────────────
+chromadb            # Local vector database
+
+# ── Utils ─────────────────────────────────
+python-dotenv       # Load .env API keys
+
+# ── Legacy (can remove if fully on React) ─
+# streamlit
