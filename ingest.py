@@ -101,9 +101,9 @@ def _get_chroma_collection(fresh: bool = False) -> chromadb.Collection:
         print(f"[ChromaDB] Wiped old DB at '{CHROMA_PATH}' — starting fresh")
 
     client = chromadb.PersistentClient(path=CHROMA_PATH)
-    ef = embedding_functions.SentenceTransformerEmbeddingFunction(
-        model_name=EMBED_MODEL
-    )
+    # DefaultEmbeddingFunction uses ONNX runtime — same model (all-MiniLM-L6-v2)
+    # but ~120MB instead of ~500MB (no PyTorch required)
+    ef = embedding_functions.DefaultEmbeddingFunction()
     collection = client.get_or_create_collection(
         name=COLLECTION_NAME,
         embedding_function=ef,

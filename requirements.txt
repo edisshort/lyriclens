@@ -8,8 +8,9 @@ python-multipart    # Required for FastAPI form parsing
 
 # ── AI / ML ───────────────────────────────
 groq                # Groq API client (Llama3-70B inference)
-sentence-transformers # Embedding model (all-MiniLM-L6-v2)
 rank-bm25           # BM25 keyword search
+# sentence-transformers removed — using chromadb's built-in ONNX embedder
+# (same model, ~120MB vs ~500MB, fits Render free tier)
 
 # ── Data sources ──────────────────────────
 lyricsgenius        # Genius API wrapper for fetching lyrics
