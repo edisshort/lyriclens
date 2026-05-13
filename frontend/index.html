@@ -525,11 +525,9 @@ const { useState, useEffect, useRef } = React;
 /* Relative base — works on any port locally and in production */
 const API = "";
 
-/* iTunes URLs are direct public links — load them natively.
-   Other sources (Genius) go through the server proxy. */
+/* All images go through the server proxy — avoids CORS/referrer issues on any domain. */
 const img = url => {
   if (!url) return null;
-  if (url.includes("mzstatic.com") || url.includes("itunes.apple.com")) return url;
   return `/api/image?url=${encodeURIComponent(url)}`;
 };
 
