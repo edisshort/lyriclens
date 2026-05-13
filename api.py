@@ -210,14 +210,21 @@ def proxy_image(url: str):
     """Fetch a remote image server-side and return it to the browser."""
     if not url.startswith("http"):
         raise HTTPException(status_code=400, detail="Invalid URL")
-    try:
-        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
-        with urllib.request.urlopen(req, timeout=8) as resp:
-            data         = resp.read()
-            content_type = resp.headers.get_content_type() or "image/jpeg"
-        return Response(content=data, media_type=content_type)
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=f"Image fetch failed: {e}")
+    # Try multiple User-Agent strings in case one is blocked
+    for ua in [
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36",
+        "iTunes/12.0 (Macintosh)",
+        "curl/7.68.0",
+    ]:
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": ua})
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                data         = resp.read()
+                content_type = resp.headers.get_content_type() or "image/jpeg"
+            return Response(content=data, media_type=content_type)
+        except Exception:
+            continue
+    raise HTTPException(status_code=502, detail="Image fetch failed after retries")
 
 
 # ── Serve React frontend ───────────────────────────────────────────────────────
