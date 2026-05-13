@@ -839,8 +839,11 @@ function App(){
 
   useEffect(()=>{endRef.current?.scrollIntoView({behavior:"smooth"});},[msgs,busy]);
 
-  /* Check if a song is already loaded from a previous session */
+  /* Each browser tab gets a fresh session — don't inherit another user's song.
+     sessionStorage is cleared when the tab closes, so every new tab starts clean. */
   useEffect(()=>{
+    const sessionLoaded = sessionStorage.getItem("ll_session_loaded");
+    if(!sessionLoaded) return; // new tab → show load screen
     fetch(`${API}/api/status`).then(r=>r.json())
       .then(d=>{if(d.loaded){setLoaded(true);setMeta(d.song_meta||null);}})
       .catch(()=>{});
@@ -856,6 +859,7 @@ function App(){
       });
       const d=await r.json();
       if(!r.ok) throw new Error(d.detail||"Failed to load song");
+      sessionStorage.setItem("ll_session_loaded","1");
       setLoaded(true);setMeta(d.song_meta||null);setMsgs([]);setRoute(null);
       notify(`✅ Loaded — ${d.chunks_count} knowledge chunks ready`);
     }catch(e){notify(e.message,"err");}
