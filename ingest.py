@@ -53,13 +53,28 @@ LYRIC_CHUNK_LINES = 8                  # how many lyric lines per chunk
 WIKI_USER_AGENT   = "LyricLens/1.0 (music research app)"
 
 
-# ── iTunes cover art lookup ───────────────────────────────────────────────────
+# ── Cover art lookup (Deezer → iTunes → Genius fallback) ─────────────────────
 
-def fetch_itunes_cover(song_title: str, artist_name: str) -> str | None:
+def fetch_deezer_cover(song_title: str, artist_name: str) -> str | None:
     """
-    Query the iTunes Search API for high-resolution cover art.
-    Free, no API key, returns direct HTTPS URLs that browsers load natively.
+    Query Deezer's free public API for album cover art.
+    No API key required. Returns a 1000×1000 JPEG URL.
     """
+    try:
+        query = urllib.parse.quote(f'artist:"{artist_name}" track:"{song_title}"')
+        url   = f"https://api.deezer.com/search?q={query}&limit=5"
+        req   = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=8) as resp:
+            data = json.loads(resp.read())
+        for track in data.get("data", []):
+            art = track.get("album", {}).get("cover_xl") or track.get("album", {}).get("cover_big")
+            if art and art.startswith("http"):
+                print(f"[Deezer] Cover found: {art}")
+                return art
+    except Exception as e:
+        print(f"[Deezer] Cover fetch failed: {e}")
+
+    # Fallback: iTunes
     try:
         query = urllib.parse.quote(f"{song_title} {artist_name}")
         url   = f"https://itunes.apple.com/search?term={query}&media=music&entity=song&limit=5"
@@ -69,10 +84,11 @@ def fetch_itunes_cover(song_title: str, artist_name: str) -> str | None:
         for result in data.get("results", []):
             art = result.get("artworkUrl100", "")
             if art:
-                # Upgrade the thumbnail to 600×600
+                print(f"[iTunes] Cover found: {art}")
                 return art.replace("100x100bb", "600x600bb")
     except Exception as e:
         print(f"[iTunes] Cover fetch failed: {e}")
+
     return None
 
 
@@ -155,8 +171,8 @@ def fetch_song_and_lyrics(song_title: str, artist_name: str) -> tuple[dict, str 
                 return getattr(s.primary_artist, "name", None) or artist_name
             return artist_name
 
-        # Cover art: iTunes first (reliable, high-res), Genius as fallback
-        cover_art = fetch_itunes_cover(song_title, artist_name)
+        # Cover art: Deezer → iTunes → Genius attributes
+        cover_art = fetch_deezer_cover(song_title, artist_name)
         if not cover_art:
             for attr in ("song_art_image_url", "song_art_image_thumbnail_url",
                          "header_image_url", "header_image_thumbnail_url"):
