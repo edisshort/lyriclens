@@ -1,3 +1,12 @@
+---
+title: LyricLens
+emoji: 🎵
+colorFrom: blue
+colorTo: purple
+sdk: docker
+pinned: false
+---
+
 # LyricLens
 
 An emotionally intelligent music research assistant built on Hybrid RAG with agentic query routing. Ask anything about a song — emotional atmosphere, lyrical themes, artist background — and get grounded, cited answers.
