@@ -23,7 +23,6 @@ from __future__ import annotations
 import os
 import re
 import json
-import shutil
 import string
 import urllib.request
 import urllib.parse
@@ -38,8 +37,7 @@ load_dotenv()
 
 GENIUS_TOKEN      = os.getenv("GENIUS_ACCESS_TOKEN")
 GENIUS_API_BASE   = "https://api.genius.com"
-# Use home directory — always writable regardless of server/container setup
-CHROMA_PATH       = os.path.join(os.path.expanduser("~"), "chroma_db")
+CHROMA_PATH       = os.path.join(os.path.expanduser("~"), "chroma_db")  # local fallback
 COLLECTION_NAME   = "lyriclens_chunks"
 LYRIC_CHUNK_LINES = 8
 WIKI_USER_AGENT   = "LyricLens/1.0 (music research app)"
@@ -224,11 +222,12 @@ def fetch_wikipedia_article(search_term: str) -> str | None:
 # ── ChromaDB ──────────────────────────────────────────────────────────────────
 
 def _get_chroma_collection(fresh: bool = False) -> chromadb.Collection:
-    if fresh and os.path.exists(CHROMA_PATH):
-        shutil.rmtree(CHROMA_PATH)
-        print(f"[ChromaDB] Wiped old DB — starting fresh")
-
-    client = chromadb.PersistentClient(path=CHROMA_PATH)
+    """
+    Use EphemeralClient (in-memory) — works on any server regardless of
+    filesystem permissions (HF Spaces, Render, etc. all have read-only disks).
+    Since we wipe and rebuild on every ingest anyway, there is no downside.
+    """
+    client = chromadb.EphemeralClient()
     ef     = embedding_functions.DefaultEmbeddingFunction()
     return client.get_or_create_collection(
         name=COLLECTION_NAME,
