@@ -843,10 +843,19 @@ function App(){
      sessionStorage is cleared when the tab closes, so every new tab starts clean. */
   useEffect(()=>{
     const sessionLoaded = sessionStorage.getItem("ll_session_loaded");
-    if(!sessionLoaded) return; // new tab → show load screen
+    if(!sessionLoaded) return;
     fetch(`${API}/api/status`).then(r=>r.json())
       .then(d=>{if(d.loaded){setLoaded(true);setMeta(d.song_meta||null);}})
       .catch(()=>{});
+  },[]);
+
+  /* Reset server state when browser tab closes — frees the session for next user */
+  useEffect(()=>{
+    const onUnload = () => {
+      navigator.sendBeacon(`${API}/api/reset`);
+    };
+    window.addEventListener("beforeunload", onUnload);
+    return () => window.removeEventListener("beforeunload", onUnload);
   },[]);
 
   const load=async()=>{
