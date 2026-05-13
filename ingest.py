@@ -38,8 +38,8 @@ load_dotenv()
 
 GENIUS_TOKEN      = os.getenv("GENIUS_ACCESS_TOKEN")
 GENIUS_API_BASE   = "https://api.genius.com"
-# /tmp is always writable — works locally and on HuggingFace/Render/any server
-CHROMA_PATH       = "/tmp/lyriclens_chroma_db"
+# Use home directory — always writable regardless of server/container setup
+CHROMA_PATH       = os.path.join(os.path.expanduser("~"), "chroma_db")
 COLLECTION_NAME   = "lyriclens_chunks"
 LYRIC_CHUNK_LINES = 8
 WIKI_USER_AGENT   = "LyricLens/1.0 (music research app)"
