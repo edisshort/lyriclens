@@ -13,7 +13,8 @@ rank-bm25           # BM25 keyword search
 # (same model, ~120MB vs ~500MB, fits Render free tier)
 
 # ── Data sources ──────────────────────────
-lyricsgenius        # Genius API wrapper for fetching lyrics
+# lyricsgenius removed — was scraping genius.com, got Cloudflare 403 on servers
+# Now using Genius REST API directly + lyrics.ovh for lyrics
 wikipedia-api       # Wikipedia article fetching
 
 # ── Storage ───────────────────────────────
