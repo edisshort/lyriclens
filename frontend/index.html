@@ -653,7 +653,20 @@ function NowPlaying({meta,mode,setMode,onClear,onReset,onFill,MODES}){
       <div className="np-cover-wrap">
         {cover
           ? <img className="np-cover" src={cover} alt="album cover"
-              onError={e=>{e.target.style.display="none";e.target.nextSibling&&(e.target.nextSibling.style.display="flex");}}/>
+              onError={e=>{
+                // If proxy failed, try the original URL directly
+                if (!e.target.dataset.fb) {
+                  e.target.dataset.fb = "1";
+                  try {
+                    const direct = new URL(e.target.src, window.location.origin).searchParams.get("url");
+                    if (direct) { e.target.src = direct; return; }
+                  } catch {}
+                }
+                // Both failed — show placeholder
+                e.target.style.display="none";
+                const ph=e.target.parentElement.querySelector(".np-cover-placeholder");
+                if(ph) ph.style.display="flex";
+              }}/>
           : null
         }
         <div className="np-cover-placeholder" style={{display: cover ? "none" : "flex"}}>🎵</div>
@@ -772,7 +785,14 @@ function CinemaBg({artUrl}){
   return(
     <div className="bg-wrap">
       {artUrl
-        ? <><img className="bg-art" src={artUrl} alt=""/><div className="bg-vignette"/></>
+        ? <><img className="bg-art" src={artUrl} alt=""
+              onError={e=>{
+                if(!e.target.dataset.fb){
+                  e.target.dataset.fb="1";
+                  try{const d=new URL(e.target.src,window.location.origin).searchParams.get("url");if(d){e.target.src=d;return;}}catch{}
+                }
+                e.target.style.display="none";
+              }}/><div className="bg-vignette"/></>
         : <><div className="bg-static"/><div className="bg-vignette"/></>
       }
     </div>

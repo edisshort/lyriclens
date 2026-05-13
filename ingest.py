@@ -57,29 +57,39 @@ WIKI_USER_AGENT   = "LyricLens/1.0 (music research app)"
 
 def fetch_deezer_cover(song_title: str, artist_name: str) -> str | None:
     """
-    Query Deezer's free public API for album cover art.
-    No API key required. Returns a 1000×1000 JPEG URL.
+    Fetch cover art from Deezer (free, no key) → iTunes → Genius attributes.
+    Tries simple queries so they work across all network environments.
     """
-    try:
-        query = urllib.parse.quote(f'artist:"{artist_name}" track:"{song_title}"')
-        url   = f"https://api.deezer.com/search?q={query}&limit=5"
-        req   = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
-        with urllib.request.urlopen(req, timeout=8) as resp:
-            data = json.loads(resp.read())
-        for track in data.get("data", []):
-            art = track.get("album", {}).get("cover_xl") or track.get("album", {}).get("cover_big")
-            if art and art.startswith("http"):
-                print(f"[Deezer] Cover found: {art}")
-                return art
-    except Exception as e:
-        print(f"[Deezer] Cover fetch failed: {e}")
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
 
-    # Fallback: iTunes
+    # ── 1. Deezer (simple query, no field specifiers) ─────────────────────────
+    for q in [f"{song_title} {artist_name}", song_title]:
+        try:
+            query = urllib.parse.quote(q)
+            url   = f"https://api.deezer.com/search?q={query}&limit=10"
+            req   = urllib.request.Request(url, headers=headers)
+            with urllib.request.urlopen(req, timeout=8) as resp:
+                data = json.loads(resp.read())
+            for track in data.get("data", []):
+                # Check artist name matches roughly
+                found_artist = track.get("artist", {}).get("name", "").lower()
+                if artist_name.lower() not in found_artist and found_artist not in artist_name.lower():
+                    continue
+                art = (track.get("album", {}).get("cover_xl")
+                    or track.get("album", {}).get("cover_big")
+                    or track.get("album", {}).get("cover_medium"))
+                if art and art.startswith("http"):
+                    print(f"[Deezer] Cover found: {art}")
+                    return art
+        except Exception as e:
+            print(f"[Deezer] query='{q}' failed: {e}")
+
+    # ── 2. iTunes fallback ────────────────────────────────────────────────────
     try:
         query = urllib.parse.quote(f"{song_title} {artist_name}")
         url   = f"https://itunes.apple.com/search?term={query}&media=music&entity=song&limit=5"
-        req   = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
-        with urllib.request.urlopen(req, timeout=6) as resp:
+        req   = urllib.request.Request(url, headers=headers)
+        with urllib.request.urlopen(req, timeout=8) as resp:
             data = json.loads(resp.read())
         for result in data.get("results", []):
             art = result.get("artworkUrl100", "")
@@ -89,6 +99,7 @@ def fetch_deezer_cover(song_title: str, artist_name: str) -> str | None:
     except Exception as e:
         print(f"[iTunes] Cover fetch failed: {e}")
 
+    print(f"[Cover] No art found for '{song_title}' by '{artist_name}'")
     return None
 
 
